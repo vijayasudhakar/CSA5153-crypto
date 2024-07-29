@@ -1,0 +1,37 @@
+import base64
+import hashlib
+from Crypto.Cipher import DES
+
+password = "Password"
+salt = b'\x28\xAB\xBC\xCD\xDE\xEF\x00\x33'
+key = password.encode() + salt 
+m = hashlib.md5(key)
+key = m.digest()
+(dk, iv) = (key[:8], key[8:])
+crypter = DES.new(dk, DES.MODE_CBC, iv)
+
+plain_text = "I see you"
+print("The plain text is:", plain_text)
+plain_text_bytes = plain_text.encode()
+plain_text_bytes += b'\x00' * (8 - len(plain_text_bytes) % 8)  
+ciphertext = crypter.encrypt(plain_text_bytes)
+encoded_string = base64.b32encode(ciphertext)  
+print("The encoded string is:", encoded_string.decode()) 
+
+def generate_key_and_iv(password, salt):
+    key = password.encode() + salt
+    m = hashlib.md5(key)
+    key = m.digest()
+    dk, iv = key[:8], key[8:]
+    return dk, iv
+def decrypt_message(encrypted_string, password, salt):
+    dk, iv = generate_key_and_iv(password, salt)
+    crypter = DES.new(dk, DES.MODE_CBC, iv)
+    encrypted_bytes = base64.b32decode(encrypted_string)
+    decrypted_bytes = crypter.decrypt(encrypted_bytes)
+    decrypted_string = decrypted_bytes.rstrip(b'\x00').decode()
+    return decrypted_string
+
+encrypted_string = encoded_string.decode()
+decrypted_message = decrypt_message(encrypted_string, password, salt)
+print("The decrypted string is:", decrypted_message)
